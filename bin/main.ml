@@ -57,7 +57,21 @@ module Board = struct
     else if Some head = t.fruit then Fruit
     else None
 
+  let change_direction t direction = Snake.change_direction t.snake direction
+
+  let read_player_input t =
+    (* TODO: remove blocking and needs to press enter *)
+    let input = input_char stdin in
+    match input with
+    | 'w' -> change_direction t Direction.Up
+    | 's' -> change_direction t Direction.Down
+    | 'a' -> change_direction t Direction.Left
+    | 'd' -> change_direction t Direction.Right
+    | _ -> ()
+
   let play t =
+    read_player_input t;
+    move t;
     (match verify_colision t with
     | Snake -> failwith "Game Over"
     | Fruit ->
