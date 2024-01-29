@@ -59,16 +59,15 @@ module Board = struct
     else if Some head = t.fruit then Fruit
     else None
 
-  let change_direction t direction = Snake.change_direction t.snake direction
-
   let read_player_input t =
-    if Raylib.is_key_pressed Raylib.Key.W then change_direction t Direction.Up
+    if Raylib.is_key_pressed Raylib.Key.W then
+      Snake.change_direction t.snake Direction.Up
     else if Raylib.is_key_pressed Raylib.Key.S then
-      change_direction t Direction.Down
+      Snake.change_direction t.snake Direction.Down
     else if Raylib.is_key_pressed Raylib.Key.A then
-      change_direction t Direction.Left
+      Snake.change_direction t.snake Direction.Left
     else if Raylib.is_key_pressed Raylib.Key.D then
-      change_direction t Direction.Right
+      Snake.change_direction t.snake Direction.Right
 
   let render t =
     let width = Raylib.get_render_width () in
