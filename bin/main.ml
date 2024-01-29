@@ -24,9 +24,11 @@ module Snake = struct
     let new_head = Direction.move t.direction (List.hd t.body) in
     t.body <- new_head :: t.body
 
-  let move t =
+  let move t max_col max_row =
     let new_head = Direction.move t.direction (List.hd t.body) in
-    t.body <- new_head :: t.body;
+    t.body <-
+      (Math.mod_ (fst new_head) max_col, Math.mod_ (snd new_head) max_row)
+      :: t.body;
     t.body <- List.rev (List.tl (List.rev t.body))
 
   let change_direction t direction = t.direction <- direction
@@ -45,7 +47,7 @@ module Board = struct
 
   type colision = Snake | Fruit | None
 
-  let move t = Snake.move t.snake
+  let move t = Snake.move t.snake t.cols t.rows
 
   let verify_colision t =
     let snake = t.snake in
@@ -60,18 +62,34 @@ module Board = struct
   let change_direction t direction = Snake.change_direction t.snake direction
 
   let read_player_input t =
-    (* TODO: remove blocking and needs to press enter *)
-    let input = input_char stdin in
-    match input with
-    | 'w' -> change_direction t Direction.Up
-    | 's' -> change_direction t Direction.Down
-    | 'a' -> change_direction t Direction.Left
-    | 'd' -> change_direction t Direction.Right
-    | _ -> ()
+    if Raylib.is_key_pressed Raylib.Key.W then change_direction t Direction.Up
+    else if Raylib.is_key_pressed Raylib.Key.S then
+      change_direction t Direction.Down
+    else if Raylib.is_key_pressed Raylib.Key.A then
+      change_direction t Direction.Left
+    else if Raylib.is_key_pressed Raylib.Key.D then
+      change_direction t Direction.Right
+
+  let render t =
+    let width = Raylib.get_render_width () in
+    let height = Raylib.get_render_height () in
+
+    let cell_width = width / 2 / t.cols in
+    let cell_height = height / 2 / t.rows in
+
+    let draw_cell x y color =
+      Raylib.draw_rectangle (x * cell_width) (y * cell_height) cell_width
+        cell_height color
+    in
+
+    for x = 0 to t.cols - 1 do
+      for y = 0 to t.rows - 1 do
+        if List.mem (x, y) t.snake.body then draw_cell x y Raylib.Color.green
+        else if Some (x, y) = t.fruit then draw_cell x y Raylib.Color.red
+      done
+    done
 
   let play t =
-    read_player_input t;
-    move t;
     (match verify_colision t with
     | Snake -> failwith "Game Over"
     | Fruit ->
@@ -79,38 +97,33 @@ module Board = struct
         t.fruit <- None
     | None -> ());
 
-    match t.fruit with
+    (match t.fruit with
     | None ->
         let x = Random.int t.cols in
         let y = Random.int t.rows in
         t.fruit <- Some (x, y)
-    | Some _ -> ()
+    | Some _ -> ());
 
-  let print t =
-    let snake = t.snake in
-    for i = 0 to t.rows - 1 do
-      for j = 0 to t.cols - 1 do
-        if
-          List.mem (j, i)
-            (List.map
-               (fun (x, y) -> (Math.mod_ x t.cols, Math.mod_ y t.rows))
-               snake.body)
-        then print_string " O "
-        else if Some (j, i) = t.fruit then print_string " X "
-        else print_string " · "
-      done;
-      print_newline ()
-    done;
-    Printf.printf "\027[%dA" t.rows
+    read_player_input t;
+    move t;
+    render t
 end
 
-let () =
-  print_string "\027[?25l";
-  let board = ref (Board.create 10 10) in
-  while true do
-    Board.print !board;
-    Board.play !board;
-    Unix.sleepf 1.
-  done;
+let setup () =
+  Raylib.init_window 800 800 "Snake";
+  Raylib.set_target_fps 30
 
-  print_newline ()
+let rec loop b =
+  if Raylib.window_should_close () then Raylib.close_window ()
+  else (
+    Raylib.begin_drawing ();
+    Raylib.clear_background Raylib.Color.black;
+
+    Board.play b;
+
+    Raylib.end_drawing ());
+  loop b
+
+let () =
+  setup ();
+  loop (Board.create 20 20)

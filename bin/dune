@@ -1,4 +1,4 @@
 (executable
  (public_name not_camel_case)
  (name main)
- (libraries not_camel_case unix))
+ (libraries not_camel_case unix raylib))
